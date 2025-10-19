@@ -1,22 +1,81 @@
 // EmailJS Configuration
-// Replace 'YOUR_PUBLIC_KEY' with your actual EmailJS public key
 const EMAILJS_PUBLIC_KEY = '-LKHbi7c8PgshEsXX';
 const EMAILJS_SERVICE_ID = 'service_3vh3dlj';
 const EMAILJS_TEMPLATE_ID = 'template_o9tnova';
 
-// Initialize EmailJS when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize EmailJS
-    if (typeof emailjs !== 'undefined') {
+let isEmailJSInitialized = false;
+
+// Initialize EmailJS immediately
+function initEmailJS() {
+    if (typeof emailjs !== 'undefined' && !isEmailJSInitialized) {
         emailjs.init(EMAILJS_PUBLIC_KEY);
+        isEmailJSInitialized = true;
+        console.log('✅ EmailJS initialized successfully');
+    } else if (typeof emailjs === 'undefined') {
+        console.error('❌ EmailJS library not found');
     }
-    
-    // Set up form submission handler
+}
+
+// Attach form handler with multiple attempts
+function attachFormHandler() {
     const form = document.getElementById('leadForm');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmission);
+
+    if (!form) {
+        console.log('⏳ Form not found yet, will retry...');
+        return false;
     }
+
+    // Remove any existing listeners to prevent duplicates
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+
+    // Attach the submit handler
+    newForm.addEventListener('submit', handleFormSubmission);
+    console.log('✅ Form handler attached successfully');
+
+    // Set up phone formatting
+    const phoneInput = document.getElementById('phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', formatPhoneInput);
+    }
+
+    return true;
+}
+
+// Try to initialize multiple times until it works
+function tryInitialize() {
+    initEmailJS();
+
+    if (attachFormHandler()) {
+        console.log('✅ Everything initialized successfully!');
+    } else {
+        setTimeout(tryInitialize, 100);
+    }
+}
+
+// Start trying as soon as possible
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInitialize);
+} else {
+    tryInitialize();
+}
+
+// Also try when components are loaded
+document.addEventListener('componentsLoaded', function() {
+    console.log('📦 Components loaded event received');
+    tryInitialize();
 });
+
+// Phone formatting function
+function formatPhoneInput(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length >= 6) {
+        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
+    } else if (value.length >= 3) {
+        value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+    }
+    e.target.value = value;
+}
 
 // Form validation functions
 function validateEmail(email) {
@@ -25,9 +84,7 @@ function validateEmail(email) {
 }
 
 function validatePhone(phone) {
-    // Remove all non-digit characters
     const cleaned = phone.replace(/\D/g, '');
-    // Check if it's 10 digits (US phone number)
     return cleaned.length === 10;
 }
 
@@ -41,24 +98,28 @@ function formatPhone(phone) {
 
 function showFieldError(fieldName, message) {
     const field = document.getElementById(fieldName);
+    if (!field) return;
+
     const errorDiv = field.parentNode.querySelector('.error-message');
-    
+
     if (errorDiv) {
         errorDiv.textContent = message;
         errorDiv.classList.remove('hidden');
     }
-    
+
     field.classList.add('border-red-400');
 }
 
 function clearFieldError(fieldName) {
     const field = document.getElementById(fieldName);
+    if (!field) return;
+
     const errorDiv = field.parentNode.querySelector('.error-message');
-    
+
     if (errorDiv) {
         errorDiv.classList.add('hidden');
     }
-    
+
     field.classList.remove('border-red-400');
 }
 
@@ -69,17 +130,14 @@ function clearAllErrors() {
 
 function validateForm(formData) {
     let isValid = true;
-    
-    // Clear previous errors
+
     clearAllErrors();
-    
-    // Validate name
+
     if (!formData.name.trim()) {
         showFieldError('name', 'Name is required');
         isValid = false;
     }
-    
-    // Validate email
+
     if (!formData.email.trim()) {
         showFieldError('email', 'Email is required');
         isValid = false;
@@ -87,8 +145,7 @@ function validateForm(formData) {
         showFieldError('email', 'Please enter a valid email address');
         isValid = false;
     }
-    
-    // Validate phone
+
     if (!formData.phone.trim()) {
         showFieldError('phone', 'Phone number is required');
         isValid = false;
@@ -96,7 +153,7 @@ function validateForm(formData) {
         showFieldError('phone', 'Please enter a valid 10-digit phone number');
         isValid = false;
     }
-    
+
     return isValid;
 }
 
@@ -104,83 +161,88 @@ function showLoadingState() {
     const submitBtn = document.getElementById('submitBtn');
     const submitText = document.getElementById('submitText');
     const loadingText = document.getElementById('loadingText');
-    
-    submitBtn.disabled = true;
-    submitText.classList.add('hidden');
-    loadingText.classList.remove('hidden');
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitText) submitText.classList.add('hidden');
+    if (loadingText) loadingText.classList.remove('hidden');
 }
 
 function hideLoadingState() {
     const submitBtn = document.getElementById('submitBtn');
     const submitText = document.getElementById('submitText');
     const loadingText = document.getElementById('loadingText');
-    
-    submitBtn.disabled = false;
-    submitText.classList.remove('hidden');
-    loadingText.classList.add('hidden');
+
+    if (submitBtn) submitBtn.disabled = false;
+    if (submitText) submitText.classList.remove('hidden');
+    if (loadingText) loadingText.classList.add('hidden');
 }
 
 function showSuccessMessage() {
     const successMessage = document.getElementById('successMessage');
     const errorMessage = document.getElementById('errorMessage');
-    
-    errorMessage.classList.add('hidden');
-    successMessage.classList.remove('hidden');
-    
-    // Scroll to success message
-    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    if (errorMessage) errorMessage.classList.add('hidden');
+    if (successMessage) {
+        successMessage.classList.remove('hidden');
+        successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
 function showErrorMessage(message) {
     const successMessage = document.getElementById('successMessage');
     const errorMessage = document.getElementById('errorMessage');
     const errorText = document.getElementById('errorText');
-    
-    successMessage.classList.add('hidden');
-    errorText.textContent = message;
-    errorMessage.classList.remove('hidden');
-    
-    // Scroll to error message
-    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    if (successMessage) successMessage.classList.add('hidden');
+    if (errorText) errorText.textContent = message;
+    if (errorMessage) {
+        errorMessage.classList.remove('hidden');
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
 function resetForm() {
     const form = document.getElementById('leadForm');
-    form.reset();
+    if (form) form.reset();
     clearAllErrors();
-    
-    // Hide all messages
-    document.getElementById('successMessage').classList.add('hidden');
-    document.getElementById('errorMessage').classList.add('hidden');
+
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    if (successMessage) successMessage.classList.add('hidden');
+    if (errorMessage) errorMessage.classList.add('hidden');
 }
 
 // Main form submission handler
 async function handleFormSubmission(event) {
+    // CRITICAL: Prevent default form submission
     event.preventDefault();
-    
-    // Get form data
+    event.stopPropagation();
+
+    console.log('🚀 Form submission started');
+
     const formData = {
         name: document.getElementById('name').value.trim(),
         email: document.getElementById('email').value.trim(),
         phone: document.getElementById('phone').value.trim(),
         message: document.getElementById('message').value.trim()
     };
-    
-    // Validate form
+
+    console.log('📝 Form data collected:', formData);
+
     if (!validateForm(formData)) {
-        return;
+        console.log('❌ Form validation failed');
+        return false;
     }
-    
-    // Show loading state
+
+    console.log('✅ Form validation passed');
+
     showLoadingState();
-    
+
     try {
-        // Check if EmailJS is loaded
-        if (typeof emailjs === 'undefined') {
-            throw new Error('EmailJS is not loaded. Please check your configuration.');
+        if (!isEmailJSInitialized || typeof emailjs === 'undefined') {
+            throw new Error('EmailJS is not initialized. Please refresh the page and try again.');
         }
-        
-        // Prepare template parameters
+
         const templateParams = {
             from_name: formData.name,
             from_email: formData.email,
@@ -188,7 +250,6 @@ async function handleFormSubmission(event) {
             message: formData.message || 'No additional details provided',
             to_name: 'Chorvinsky Smart Home',
             reply_to: formData.email,
-            // Additional context for the email
             subject: `New Lead: ${formData.name} - Smart Home Consultation`,
             lead_source: 'Website Contact Form',
             timestamp: new Date().toLocaleString('en-US', {
@@ -200,56 +261,40 @@ async function handleFormSubmission(event) {
                 minute: '2-digit'
             })
         };
-        
-        // Send email using EmailJS
+
+        console.log('📧 Sending email via EmailJS...');
+
         const response = await emailjs.send(
             EMAILJS_SERVICE_ID,
             EMAILJS_TEMPLATE_ID,
             templateParams
         );
-        
-        console.log('Email sent successfully:', response);
-        
-        // Show success message
+
+        console.log('✅ Email sent successfully:', response);
+
         showSuccessMessage();
-        
-        // Reset form after 3 seconds
+
         setTimeout(() => {
             resetForm();
         }, 3000);
-        
+
     } catch (error) {
-        console.error('Error sending email:', error);
-        
-        // Show user-friendly error message
+        console.error('❌ Error sending email:', error);
+
         let errorMessage = 'Failed to send your message. Please try again.';
-        
+
         if (error.text) {
             errorMessage = `Error: ${error.text}`;
+            console.error('Error details:', error.text);
         } else if (error.message) {
             errorMessage = `Error: ${error.message}`;
+            console.error('Error details:', error.message);
         }
-        
+
         showErrorMessage(errorMessage);
     } finally {
-        // Hide loading state
         hideLoadingState();
     }
+
+    return false;
 }
-
-// Auto-format phone number as user types
-document.addEventListener('DOMContentLoaded', function() {
-    const phoneInput = document.getElementById('phone');
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 6) {
-                value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
-            } else if (value.length >= 3) {
-                value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
-            }
-            e.target.value = value;
-        });
-    }
-});
-
