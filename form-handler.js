@@ -248,7 +248,7 @@ async function handleFormSubmission(event) {
             from_email: formData.email,
             phone: formatPhone(formData.phone),
             message: formData.message || 'No additional details provided',
-            to_name: 'Chorvinsky Smart Home',
+            to_name: 'Chorvinsky Smart Homes',
             reply_to: formData.email,
             subject: `New Lead: ${formData.name} - Smart Home Consultation`,
             lead_source: 'Website Contact Form',

@@ -39,7 +39,7 @@ New Lead: {{from_name}} - Smart Home Consultation
 
 ### Template Body
 ```html
-<h2>New Lead from Chorvinsky Smart Home Website</h2>
+<h2>New Lead from Chorvinsky Smart Homes Website</h2>
 
 <p><strong>Contact Information:</strong></p>
 <ul>
